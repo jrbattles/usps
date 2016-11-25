@@ -22,19 +22,23 @@ dataRaw$Next.Rent...Sq.Ft = as.numeric(gsub("[\\$,]", "", dataRaw$Next.Rent...Sq
 dataRaw$Eff.Date <- as.Date(dataRaw$Eff.Date, "%m/%d/%Y") 
 dataRaw$Exp.Date <- as.Date(dataRaw$Exp.Date, "%m/%d/%Y") 
 dataRaw$Maint <- as.factor(dataRaw$Maint)
+dataRaw$Unit.Name <- as.factor(dataRaw$Unit.Name)
 dataRaw$Int.Sq.Ft = as.numeric(gsub("[\\,]", "", dataRaw$Int.Sq.Ft))
 dataRaw$Site.Sq.Ft = as.numeric(gsub("[\\,]", "", dataRaw$Site.Sq.Ft))
 
 #dataRaw$City %in% dataSeats$City
 
-# 
-targetsCountySeats <- collect(inner_join(dataRaw, dataSeats))
-targetsCountySeatsGrow <- collect(inner_join(targetsCountySeats, dataIncrease))
+#targetsCountySeats <- collect(inner_join(dataRaw, dataSeats))
+
+#targetsCountySeatsGrow <- collect(inner_join(targetsCountySeats, dataIncrease))
 
 #indx <- targets$County %in% dataDecline$County
-
-rentCheap <- subset(targetsCountySeatsGrow, subset=(Annual.Rent <= 25000))
-
+rentCheap <- subset(dataRaw, subset=(Annual.Rent <= 15000))
+#rentCheap <- subset(rentCheap, subset=(Annual.Rent >= 15000))
+rentCheapMains <- subset(rentCheap, subset=(Unit.Name == "MAIN OFFICE"))
+avgRentSqFt <- mean(rentCheap$Annual.Rent...Sq.Ft)
+rentCheap2 <- rentCheap %>% mutate(ChangeSqFtRate = Annual.Rent...Sq.Ft - avgRentSqFt)
+rentCheaper <- subset(rentCheap2, subset=(ChangeSqFtRate < 0))
 
 qplot(Annual.Rent, Site.Sq.Ft, data = rentCheap, colour = Maint)
 qplot(Next.Rent...Sq.Ft, Next.Rent, data = dataRaw, colour = Exp.Date)
@@ -46,8 +50,19 @@ p + geom_point() + geom_text(size = 3, vjust = 0, nudge_y = 0.5)
 p <- ggplot(rentCheap, aes(Annual.Rent, Int.Sq.Ft, label = PO.Name))
 p + geom_point() + geom_text(size = 2, vjust = 0, nudge_y = 0.5)
 
-p <- ggplot(rentCheap, aes(Annual.Rent, Site.Sq.Ft, label = PO.Name))
-p + geom_point() + geom_text(vjust = -.5, aes(colour = factor(Maint)))
+p <- ggplot(rentCheap, aes(Annual.Rent, Next.Rent, label = PO.Name))
+p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Maint)))
+
+p <- ggplot(rentCheap, aes(Annual.Rent, Annual.Rent...Sq.Ft - avgRentSqFt, label = PO.Name))
+p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = Exp.Date))
+
+p <- ggplot(rentCheaper, aes(Annual.Rent, ChangeSqFtRate, label = PO.Name))
+p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = Exp.Date))
 
 p <- ggplot(rentCheap, aes(Annual.Rent, Int.Sq.Ft, label = PO.Name))
 p + geom_point() + geom_text(angle = 45, aes(colour = factor(Maint)))
+
+hist(rentCheap$Annual.Rent, breaks = 50)
+
+## target 250 main offices locations with annual rent < $15K
+write.table(rentCheapMains, file = "CheapMainOffices2.csv", sep = ",")
