@@ -68,5 +68,22 @@ p + geom_point() + geom_text(angle = 45, aes(colour = factor(Maint)))
 
 hist(rentCheap$Annual.Rent, breaks = 50)
 
+## Adding Latitude & Longitude to the locations
+install.packages("RDSTK")
+library("RDSTK", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resources/library")
+fullAddr = paste(dataRaw[326,5], dataRaw[326,6], dataRaw[326,7], dataRaw[326,8], sep = ",")
+coordsPO <- street2coordinates(fullAddr)
+
+## playing with maps
+library(ggmap)
+qmap('Tulsa')
+qmap('north miami, ok')
+qmap('north miami, ok', zoom = 13)
+map <- qmap('north miami, ok', zoom = 13)
+Longitude <- coordsPO[5]
+Latitude <- coordsPO[3]
+map + geom_point(data = coordsPO, aes(x = Longitude, y = Latitude), color="red", size=3, alpha=0.5)
+
+
 ## target 250 main offices locations with annual rent < $15K
 write.table(rentCheapMains, file = "CheapMainOffices2.csv", sep = ",")
