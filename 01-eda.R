@@ -6,8 +6,12 @@ library(dplyr)
 ## Exploratory Data Analysis
 download(url="https://about.usps.com/who-we-are/foia/leased-facilities/ok.csv", destfile="ok-usps.csv")
 
+## https://about.usps.com/who-we-are/foia/readroom/ownedfacilitiesreport.htm
+download(url="https://about.usps.com/who-we-are/foia/owned-facilities/ok.csv", destfile="ok-usps-owned.csv")
+
 ## collect raw data
 dataRaw <- read.csv("ok-usps.csv", header = TRUE, skip = 3, as.is = TRUE)
+dataRawOwn <- read.csv("ok-usps-owned.csv", header = TRUE, skip = 3, as.is = TRUE)
 dataSeats <- read.csv("ok-countyseats.csv", header = TRUE, as.is = TRUE)
 dataSeats$City <- toupper(dataSeats$City)
 # http://okcommerce.gov/wp-content/uploads/2015/06/Population_Projections_Report-2012.pdf
