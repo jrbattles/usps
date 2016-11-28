@@ -39,17 +39,26 @@ dataRaw$Site.Sq.Ft = as.numeric(gsub("[\\,]", "", dataRaw$Site.Sq.Ft))
 #indx <- targets$County %in% dataDecline$County
 rentCheap <- subset(dataRaw, subset=(Annual.Rent <= 15000))
 #rentCheap <- subset(rentCheap, subset=(Annual.Rent >= 15000))
-rentCheapMains <- subset(rentCheap, subset=(Unit.Name == "MAIN OFFICE"))
-avgRentSqFt <- mean(rentCheap$Annual.Rent...Sq.Ft)
-rentCheap2 <- rentCheap %>% mutate(ChangeSqFtRate = Annual.Rent...Sq.Ft - avgRentSqFt)
-rentCheaper <- subset(rentCheap2, subset=(ChangeSqFtRate < 0))
+rentCheapMains <- subset(rentCheap, subset=(Unit.Name == "MAIN OFFICE" | Unit.Name == "MAIN POST OFFICE" | Unit.Name == "MPO"))
+avgRentSqFt <- mean(rentCheapMains$Annual.Rent...Sq.Ft)
+rentCheapMains2 <- rentCheapMains %>% mutate(ChangeSqFtRate = Annual.Rent...Sq.Ft - avgRentSqFt)
+rentCheapMainsWillGrow <- subset(rentCheapMains2, subset=(ChangeSqFtRate < 0))
+
+## test pattern-matching
+rentCheapRegions <- rentCheapMainsWillGrow %>% mutate(region = clean.zipcodes(ZIP.Code))
+rentCheapRegsPops <- merge(rentCheapRegions, df_pop_zip, by.x = "region", by.y = "region", all.x = TRUE)
+names(rentCheapRegsPops)[34]<-paste("Population")
+
+
+p <- ggplot(rentCheapRegsPops, aes(Annual.Rent, Population, label = PO.Name))
+p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Unit.Name)))
+
 
 qplot(Annual.Rent, Site.Sq.Ft, data = rentCheap, colour = Maint)
 qplot(Next.Rent...Sq.Ft, Next.Rent, data = dataRaw, colour = Exp.Date)
 
 p <- ggplot(rentCheap, aes(Annual.Rent, Site.Sq.Ft, label = PO.Name))
 p + geom_point() + geom_text(size = 3, vjust = 0, nudge_y = 0.5)
-
 
 p <- ggplot(rentCheap, aes(Annual.Rent, Int.Sq.Ft, label = PO.Name))
 p + geom_point() + geom_text(size = 2, vjust = 0, nudge_y = 0.5)
@@ -87,3 +96,7 @@ map + geom_point(data = coordsPO, aes(x = Longitude, y = Latitude), color="red",
 
 ## target 250 main offices locations with annual rent < $15K
 write.table(rentCheapMains, file = "CheapMainOffices2.csv", sep = ",")
+
+
+
+#^[A-C][a-zA-Z0-9]{4}$
