@@ -102,15 +102,37 @@ rentCheapRegsPopsLatLong <- merge(rentCheapRegsPopsLocs, zipcode, by.x = "region
 
 #mapping
 names(rentCheapRegsPopsLatLong)
-rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Annual.Rent > 0)
-rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Next.Rent...Sq.Ft > 0)
-names(rentCheapRegsPopsLatLong)[32]<-paste("Rent.Per.Sq.Ft")
+rentCheapRegsPopsLatLongNoZ <- filter(rentCheapRegsPopsLatLong, Annual.Rent > 0)
+#rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Next.Rent...Sq.Ft > 0)
+names(rentCheapRegsPopsLatLongNoZ)[29]<-paste("Rent.Per.Sq.Ft")
+names(rentCheapRegsPopsLatLongNoZ)
+
+#theme_set(theme_bw(16))
+#OklahomaMap <- qmap("el reno, ok", zoom = 6, color = "bw", extent = "normal", scale = 2)
+#OklahomaMap +
+#    geom_point(aes(x = longitude, y = latitude, colour = Rent.Per.Sq.Ft, size = Population, labels = PO.Name),
+#               data = rentCheapRegsPopsLatLong)
+
+##  mapping with PO Names now
+#theme_set(theme_bw(16))
+#OklahomaMap <- qmap("el reno, ok", zoom = 7, color = "bw", extent = "normal", scale = 2, maprange = TRUE)
+#OklahomaMap +
+#    geom_point(aes(x = longitude, y = latitude, colour = Rent.Per.Sq.Ft, size = Population),
+#               data = rentCheapRegsPopsLatLongNoZ) + geom_text(data = rentCheapRegsPopsLatLongNoZ, aes(x = longitude, y = latitude, label = PO.Name), size = 2, vjust = 0, hjust = 0)
+
+## mapping with PO Names and red / gren colour gradiant
 theme_set(theme_bw(16))
-OklahomaMap <- qmap("oklahoma city", zoom = 7, color = "bw", legend = "bottomleft")
+OklahomaMap <- qmap("el reno, ok", zoom = 7, color = "bw", extent = "normal", scale = 2, maprange = TRUE)
 OklahomaMap +
-    geom_point(aes(x = longitude, y = latitude, colour = Rent.Per.Sq.Ft, size = Annual.Rent),
-               data = rentCheapRegsPopsLatLong)
-OklahomaMap
+    geom_point(aes(x = longitude, y = latitude, colour = Rent.Per.Sq.Ft, size = Population), 
+               data = rentCheapRegsPopsLatLongNoZ) + scale_color_gradient(low = "green", high = "red") +
+                geom_text(data = rentCheapRegsPopsLatLongNoZ, aes(x = longitude, y = latitude, label = PO.Name), size = 2, vjust = 0, hjust = 0)
+
+
+# alternate
+myLocation <- c(-105, 34.5, -93, 37.5)
+myMap <- get_map(location = myLocation, source = "google", color = "bw", scale = 2)
+ggmap(myMap)
 
 
 ## playing with maps
