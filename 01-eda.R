@@ -9,6 +9,8 @@ download(url="https://about.usps.com/who-we-are/foia/leased-facilities/ok.csv", 
 ## https://about.usps.com/who-we-are/foia/readroom/ownedfacilitiesreport.htm
 download(url="https://about.usps.com/who-we-are/foia/owned-facilities/ok.csv", destfile="ok-usps-owned.csv")
 
+
+
 ## collect raw data
 dataRaw <- read.csv("ok-usps.csv", header = TRUE, skip = 3, as.is = TRUE)
 dataRawOwn <- read.csv("ok-usps-owned.csv", header = TRUE, skip = 3, as.is = TRUE)
@@ -37,22 +39,29 @@ dataRaw$Site.Sq.Ft = as.numeric(gsub("[\\,]", "", dataRaw$Site.Sq.Ft))
 #targetsCountySeatsGrow <- collect(inner_join(targetsCountySeats, dataIncrease))
 
 #indx <- targets$County %in% dataDecline$County
+
+# subset for rents < $15K and only main post offices.
 rentCheap <- subset(dataRaw, subset=(Annual.Rent <= 15000))
-#rentCheap <- subset(rentCheap, subset=(Annual.Rent >= 15000))
 rentCheapMains <- subset(rentCheap, subset=(Unit.Name == "MAIN OFFICE" | Unit.Name == "MAIN POST OFFICE" | Unit.Name == "MPO"))
+
+# Calculate average AnnRate per Sq. Ft and add column with info
 avgRentSqFt <- mean(rentCheapMains$Annual.Rent...Sq.Ft)
 rentCheapMains2 <- rentCheapMains %>% mutate(ChangeSqFtRate = Annual.Rent...Sq.Ft - avgRentSqFt)
+
+# subset for only those with rates below average market value... Growth!!!!
 rentCheapMainsWillGrow <- subset(rentCheapMains2, subset=(ChangeSqFtRate < 0))
 
-## test pattern-matching
+## clean up zip codes and mesh with population data 
 rentCheapRegions <- rentCheapMainsWillGrow %>% mutate(region = clean.zipcodes(ZIP.Code))
 rentCheapRegsPops <- merge(rentCheapRegions, df_pop_zip, by.x = "region", by.y = "region", all.x = TRUE)
 names(rentCheapRegsPops)[34]<-paste("Population")
-
-
+ 
+# Plot Annual Rent per Population by Unit Name type
 p <- ggplot(rentCheapRegsPops, aes(Annual.Rent, Population, label = PO.Name))
 p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Unit.Name)))
 
+
+######  WIP below here
 
 qplot(Annual.Rent, Site.Sq.Ft, data = rentCheap, colour = Maint)
 qplot(Next.Rent...Sq.Ft, Next.Rent, data = dataRaw, colour = Exp.Date)
@@ -82,6 +91,27 @@ install.packages("RDSTK")
 library("RDSTK", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resources/library")
 fullAddr = paste(dataRaw[326,5], dataRaw[326,6], dataRaw[326,7], dataRaw[326,8], sep = ",")
 coordsPO <- street2coordinates(fullAddr)
+coordsPO[3]
+
+rentCheapRegsPopsLocs <- rentCheapRegsPops %>% mutate(Full.Addr = paste(Property.Address, City, ST, ZIP.Code, sep = ","))
+rentCheapRegsPopsLatLong <- merge(rentCheapRegsPopsLocs, zipcode, by.x = "region", by.y = "zip")
+#rentCheapRegsPopsLatLong <- rentCheapRegsPopsLocs %>% mutate(Lat = street2coordinates(rentCheapRegsPopsLocs$Full.Addr))
+
+#names(rentCheapRegsPopsLocs)
+#street2coordinates(rentCheapRegsPopsLocs$Full.Addr)
+
+#mapping
+names(rentCheapRegsPopsLatLong)
+rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Annual.Rent > 0)
+rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Next.Rent...Sq.Ft > 0)
+names(rentCheapRegsPopsLatLong)[32]<-paste("Rent.Per.Sq.Ft")
+theme_set(theme_bw(16))
+OklahomaMap <- qmap("oklahoma city", zoom = 7, color = "bw", legend = "bottomleft")
+OklahomaMap +
+    geom_point(aes(x = longitude, y = latitude, colour = Rent.Per.Sq.Ft, size = Annual.Rent),
+               data = rentCheapRegsPopsLatLong)
+OklahomaMap
+
 
 ## playing with maps
 library(ggmap)
@@ -94,9 +124,14 @@ Latitude <- coordsPO[3]
 map + geom_point(data = coordsPO, aes(x = Longitude, y = Latitude), color="red", size=3, alpha=0.5)
 
 
+
 ## target 250 main offices locations with annual rent < $15K
 write.table(rentCheapMains, file = "CheapMainOffices2.csv", sep = ",")
 
 
+# download POSTPLAN info.
+install.packages("pdftools")
+library(pdftools)
+download(url="http://auspl.com/wp-content/uploads/2013/08/POSTPlan-Statistics.pdf", destfile="POSTPlan-Statistics.pdf")
+dfPostPlan <- pdf_info("POSTPlan-Statistics.pdf")
 
-#^[A-C][a-zA-Z0-9]{4}$
