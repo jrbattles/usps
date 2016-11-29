@@ -1,3 +1,7 @@
+## United States Post Office Rental Properties
+## Exploratory Data Analysis
+## Jason R. Battles, jason.r.battles@gmail.com
+
 library(downloader)
 library(ggplot2)
 library(grid)
@@ -9,12 +13,12 @@ download(url="https://about.usps.com/who-we-are/foia/leased-facilities/ok.csv", 
 ## https://about.usps.com/who-we-are/foia/readroom/ownedfacilitiesreport.htm
 download(url="https://about.usps.com/who-we-are/foia/owned-facilities/ok.csv", destfile="ok-usps-owned.csv")
 
-
-
-## collect raw data
-dataRaw <- read.csv("ok-usps.csv", header = TRUE, skip = 3, as.is = TRUE)
+## collect raw data.  #497 leased post offices. 189 USPS fully owned props.
+dataRaw <- read.csv("ok-usps.csv", header = TRUE, skip = 3, as.is = TRUE)   
 dataRawOwn <- read.csv("ok-usps-owned.csv", header = TRUE, skip = 3, as.is = TRUE)
 dataSeats <- read.csv("ok-countyseats.csv", header = TRUE, as.is = TRUE)
+
+# load data on Oklahoma county seats and whether county population is growing / shrinking
 dataSeats$City <- toupper(dataSeats$City)
 # http://okcommerce.gov/wp-content/uploads/2015/06/Population_Projections_Report-2012.pdf
 dataDecrease <- read.csv("ok-countydecline.csv", header = TRUE, as.is = TRUE)
