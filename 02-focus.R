@@ -13,7 +13,7 @@ library("zipcode", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resourc
 download(url="https://about.usps.com/who-we-are/foia/leased-facilities/ok.csv", destfile="ok-usps.csv")
 
 ## https://about.usps.com/who-we-are/foia/readroom/ownedfacilitiesreport.htm
-download(url="https://about.usps.com/who-we-are/foia/owned-facilities/ok.csv", destfile="ok-usps-owned.csv")
+#download(url="https://about.usps.com/who-we-are/foia/owned-facilities/ok.csv", destfile="ok-usps-owned.csv")
 
 ## collect raw data.  #497 leased post offices. 189 USPS fully owned props.
 poLease <- read.csv("ok-usps.csv", header = TRUE, skip = 3, as.is = TRUE)   
@@ -38,6 +38,9 @@ poLease$Unit.Name <- as.factor(poLease$Unit.Name)
 poLease$Int.Sq.Ft = as.numeric(gsub("[\\,]", "", poLease$Int.Sq.Ft))
 poLease$Site.Sq.Ft = as.numeric(gsub("[\\,]", "", poLease$Site.Sq.Ft))
 
+## add necessary fields
+poLease <- poLease %>% mutate(Full.Addr = paste(Property.Address, City, ST, ZIP.Code, sep = ","))
+
 #dataRaw$City %in% dataSeats$City
 
 #targetsCountySeats <- collect(inner_join(dataRaw, dataSeats))
@@ -50,25 +53,25 @@ poLease$Site.Sq.Ft = as.numeric(gsub("[\\,]", "", poLease$Site.Sq.Ft))
 poLeaseLow <- subset(poLease, subset=(Annual.Rent <= 20000))
 poLeaseLowMain <- subset(poLeaseLow, subset=(Unit.Name == "MAIN OFFICE" | Unit.Name == "MAIN POST OFFICE" | Unit.Name == "MPO"))
 
-# Calculate average AnnRate per Sq. Ft and add column with info
+# Calculate average AnnRate per Sq. Ft of Main Offices in target rentals and add column with info
 avgRentSqFt <- mean(poLeaseLowMain$Annual.Rent...Sq.Ft)
 #poLeaseLowMain <- poLeaseLowMain %>% mutate(LeaseMktComparisonToAvg = Annual.Rent...Sq.Ft - avgRentSqFt)
 
 # subset for only those with rates below average market value... Growth!!!!
 #rentCheapMainsWillGrow <- subset(rentCheapMains2, subset=(ChangeSqFtRate < 0))
 
-## clean up zip codes and mesh with population data 
+## clean up codes and mesh with population data 
 library("zipcode", lib.loc="/Library/Frameworks/R.framework/Versions/3.3/Resources/library")
 data(df_pop_zip)
 
 poLeaseLowMainLocs <- poLeaseLowMain %>% mutate(region = clean.zipcodes(ZIP.Code))
 poLeaseLowMainLocs <- merge(poLeaseLowMainLocs, df_pop_zip, by.x = "region", by.y = "region", all.x = TRUE)
 names(poLeaseLowMainLocs)
-names(poLeaseLowMainLocs)[33]<-paste("Population")
+names(poLeaseLowMainLocs)[34]<-paste("Population")
  
 # Plot Annual Rent per Population by Unit Name type
-p <- ggplot(rentCheapRegsPops, aes(Annual.Rent, Population, label = PO.Name))
-p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Unit.Name)))
+#p <- ggplot(rentCheapRegsPops, aes(Annual.Rent, Population, label = PO.Name))
+#p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Unit.Name)))
 
 
 ######  WIP below here
@@ -94,7 +97,7 @@ p + geom_point() + geom_text(size = 3, vjust = -.5, aes(colour = factor(Unit.Nam
 #p <- ggplot(rentCheap, aes(Annual.Rent, Int.Sq.Ft, label = PO.Name))
 #p + geom_point() + geom_text(angle = 45, aes(colour = factor(Maint)))
 
-hist(poLeaseLowMainLocs$Annual.Rent, breaks = 50)
+#hist(poLeaseLowMainLocs$Annual.Rent, breaks = 50)
 
 ## Adding Latitude & Longitude to the locations
 #install.packages("RDSTK")
@@ -117,8 +120,8 @@ names(poLeaseLowMainLocs)
 #rentCheapRegsPopsLatLong <- filter(rentCheapRegsPopsLatLong, Next.Rent...Sq.Ft > 0)
 names(poLeaseLowMainLocs)[30]<-paste("Rent.Sq.Ft")
 names(poLeaseLowMainLocs)
-poLeaseLowMainLocs <- poLeaseLowMainLocs %>% mutate(Full.Addr = paste(Property.Address, City, ST, ZIP.Code, sep = ","))
-poLeaseLowMainLocs <- poLeaseLowMainLocs %>% mutate(LeaseMktComparisonToAvg = Rent.Sq.Ft - avgRentSqFt)
+
+poLeaseLowMainLocs <- poLeaseLowMainLocs %>% mutate(Diff.SqFt.ToAvg = Rent.Sq.Ft - avgRentSqFt)
 
 #theme_set(theme_bw(16))
 #OklahomaMap <- qmap("el reno, ok", zoom = 6, color = "bw", extent = "normal", scale = 2)
@@ -143,22 +146,7 @@ OklahomaMap +
                 geom_text(data = poLeaseLowMainLocs, aes(x = longitude, y = latitude, label = PO.Name), size = 2, vjust = 0, hjust = 0)
 
 
-# alternate
-myLocation <- c(-105, 34.5, -93, 37.5)
-myMap <- get_map(location = myLocation, source = "google", color = "bw", scale = 2)
-ggmap(myMap)
-
-
 ## playing with maps
-library(ggmap)
-qmap('Tulsa')
-qmap('north miami, ok')
-qmap('north miami, ok', zoom = 13)
-map <- qmap('north miami, ok', zoom = 13)
-Longitude <- coordsPO[5]
-Latitude <- coordsPO[3]
-map + geom_point(data = coordsPO, aes(x = Longitude, y = Latitude), color="red", size=3, alpha=0.5)
-
 poLeaseLowMainLocs <- filter(poLeaseLowMainLocs, Annual.Rent > 0)
 qplot(poLeaseLowMainLocs$Annual.Rent, 
       geom="histogram",
@@ -176,6 +164,9 @@ qplot(poLeaseLowMainLocs$Population,
 
 
 poLeaseLowMainLocs250up <- filter(poLeaseLowMainLocs, Population > 250)
+poLeaseLowMainLocs300up <- filter(poLeaseLowMainLocs, Population > 300)
+poLeaseLowMainLocs350up <- filter(poLeaseLowMainLocs, Population > 350)
+poLeaseLowMainLocs400up <- filter(poLeaseLowMainLocs, Population > 400)
 
 qplot(poLeaseLowMainLocs250up$Annual.Rent, 
       geom="histogram",
